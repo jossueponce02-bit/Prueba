@@ -113,6 +113,7 @@ function applyRole(role) {
     const roles = (b.dataset.roles || '').split(',');
     b.classList.toggle('hidden-role', !roles.includes(role));
   });
+  document.querySelectorAll('.admin-only').forEach(el => { el.style.display = role === 'admin' ? '' : 'none'; });
 }
 
 /* ═══════════════════════════════════════
@@ -596,6 +597,18 @@ function delProd(id) {
   });
 }
 function catBcKey(e) { if (e.key === 'Enter') { e.preventDefault(); processBarcode(val('c-barras').trim(),'catalogo'); } }
+
+function vaciarCatalogo() {
+  if (!inv.length) { toast('El catálogo ya está vacío','info'); return; }
+  confirmDel(async () => {
+    try {
+      const r = await api('POST','/api/products/clear-all');
+      await reloadProducts();
+      resetCatForm(); renderCat(); fillCatsDL();
+      toast(`Catálogo vaciado (${r.eliminados} productos)`,'warn');
+    } catch (e) { toast(e.message,'err'); }
+  });
+}
 
 /* CSV catálogo */
 function descargarPlantilla() {

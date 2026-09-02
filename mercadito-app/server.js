@@ -173,6 +173,12 @@ app.delete('/api/products/:id', authRequired, requireRole('compras'), wrap(async
   res.json({ ok: true });
 }));
 
+// Vaciar todo el catálogo (solo admin)
+app.post('/api/products/clear-all', authRequired, requireRole('admin'), wrap(async (req, res) => {
+  const r = await q('DELETE FROM products');
+  res.json({ ok: true, eliminados: r.rowCount });
+}));
+
 app.post('/api/products/bulk', authRequired, requireRole('compras'), wrap(async (req, res) => {
   const items = Array.isArray(req.body?.items) ? req.body.items : [];
   if (!items.length) return res.status(400).json({ error: 'Sin productos para importar' });
