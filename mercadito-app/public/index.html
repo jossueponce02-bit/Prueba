@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏪 Sistema Mercadito</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login-screen">
+  <form id="login-card" onsubmit="return doLogin(event)">
+    <div class="login-logo">🏪</div>
+    <h1>Sistema Mercadito</h1>
+    <p class="login-sub">Administración de ventas, inventario y compras</p>
+    <div class="form-group">
+      <label>Usuario</label>
+      <input id="login-user" type="text" autocomplete="username" placeholder="usuario" required />
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••" required />
+    </div>
+    <div id="login-err" class="login-err"></div>
+    <button type="submit" class="btn btn-green btn-lg" style="width:100%;justify-content:center;margin-top:6px">
+      Iniciar sesión
+    </button>
+    <p class="login-hint">Primera vez: usuario <strong>admin</strong> / clave <strong>admin123</strong></p>
+  </form>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="app" style="display:none">
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header>
+  <div class="logo">🏪</div>
+  <div>
+    <h1 id="h-nombre">Mi Mercadito</h1>
+    <p id="h-fecha"></p>
+  </div>
+  <div class="scan-pill" id="scan-pill">
+    <div class="dot"></div>
+    <span>Escáner listo</span>
+  </div>
+  <div class="user-menu">
+    <button class="user-btn" id="user-btn" onclick="toggleUserMenu(event)">
+      <span class="user-avatar" id="user-avatar">A</span>
+      <span class="user-meta">
+        <strong id="user-name">Usuario</strong>
+        <span id="user-role">rol</span>
+      </span>
+      <span style="font-size:.7rem">▼</span>
+    </button>
+    <div class="user-dropdown" id="user-dropdown">
+      <button onclick="openModal('m-pass'); closeUserMenu()">🔑 Cambiar contraseña</button>
+      <button onclick="logout()">🚪 Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav id="nav">
+  <button data-tab="dashboard"  data-roles="admin,ventas,compras" class="active" onclick="tab('dashboard')">📊 Dashboard</button>
+  <button data-tab="pos"        data-roles="admin,ventas"         onclick="tab('pos')">🛒 Punto de Venta</button>
+  <button data-tab="consulta"   data-roles="admin,ventas,compras" onclick="tab('consulta')">🔎 Consulta Precio</button>
+  <button data-tab="catalogo"   data-roles="admin,compras"        onclick="tab('catalogo')">📦 Catálogo</button>
+  <button data-tab="compras"    data-roles="admin,compras"        onclick="tab('compras')">📥 Compras</button>
+  <button data-tab="historial"  data-roles="admin,ventas,compras" onclick="tab('historial')">📋 Historial</button>
+  <button data-tab="tendencias" data-roles="admin,compras"        onclick="tab('tendencias')">📈 Tendencias</button>
+  <button data-tab="usuarios"   data-roles="admin"                onclick="tab('usuarios')">👥 Usuarios</button>
+  <button data-tab="config"     data-roles="admin"                onclick="tab('config')">⚙️ Config</button>
+</nav>
+
+<main>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div id="tab-dashboard" class="tab-panel active">
+  <h3 class="sec-title">📅 Hoy</h3>
+  <div class="kpi-grid">
+    <div class="kpi verde"><label>Ventas Hoy</label><div class="valor" id="k-vtas">L. 0.00</div><div class="sub" id="k-vtas-n">0 ventas</div></div>
+    <div class="kpi rojo"><label>Compras Hoy</label><div class="valor" id="k-cmps">L. 0.00</div><div class="sub" id="k-cmps-n">0 compras</div></div>
+    <div class="kpi amarillo"><label>Utilidad Hoy</label><div class="valor" id="k-util">L. 0.00</div><div class="sub" id="k-util-pct">0.00% margen</div></div>
+    <div class="kpi"><label>Valor Inventario</label><div class="valor" id="k-inv">L. 0.00</div><div class="sub" id="k-inv-n">0 productos</div></div>
+  </div>
+
+  <h3 class="sec-title" id="dash-mes-label">📆 Mes</h3>
+  <div class="kpi-grid">
+    <div class="kpi verde"><label>Ventas del Mes</label><div class="valor" id="km-vtas">L. 0.00</div><div class="sub" id="km-vtas-n">0 ventas</div></div>
+    <div class="kpi rojo"><label>Compras del Mes</label><div class="valor" id="km-cmps">L. 0.00</div><div class="sub" id="km-cmps-n">0 compras</div></div>
+    <div class="kpi amarillo"><label>Utilidad del Mes</label><div class="valor" id="km-util">L. 0.00</div><div class="sub" id="km-util-pct">0.00% margen</div></div>
+  </div>
+
+  <h3 class="sec-title" id="dash-anio-label">📊 Año</h3>
+  <div class="kpi-grid">
+    <div class="kpi verde"><label>Ventas del Año</label><div class="valor" id="ky-vtas">L. 0.00</div><div class="sub" id="ky-vtas-n">0 ventas</div></div>
+    <div class="kpi rojo"><label>Compras del Año</label><div class="valor" id="ky-cmps">L. 0.00</div><div class="sub" id="ky-cmps-n">0 compras</div></div>
+    <div class="kpi amarillo"><label>Utilidad del Año</label><div class="valor" id="ky-util">L. 0.00</div><div class="sub" id="ky-util-pct">0.00% margen</div></div>
+  </div>
+
+  <div class="card">
+    <h2>⚠️ Productos con Stock Bajo / Agotado</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Cód.</th><th>Barras</th><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Estado</th></tr></thead>
+        <tbody id="dash-stock-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🕐 Últimas Ventas del Día</h2>
+    <div id="dash-recientes"></div>
+  </div>
+</div>
+
+<!-- ══════════════ PUNTO DE VENTA ══════════════ -->
+<div id="tab-pos" class="tab-panel">
+  <div class="scan-bar">
+    <span style="font-size:1.3rem">🔍</span>
+    <div class="ac-wrap" style="flex:1">
+      <input id="pos-input" type="text" placeholder="Escanea código de barras o escribe el nombre del producto…"
+             autocomplete="off" oninput="posSearch()" onkeydown="posKey(event)" />
+      <div class="ac-list" id="pos-ac"></div>
+    </div>
+    <button class="btn btn-blue" onclick="camOpen('pos')" title="Escanear con cámara">📷 Cámara</button>
+  </div>
+
+  <div class="pos-layout">
+    <div class="card" style="margin-bottom:0">
+      <h2>🛒 Carrito <span id="cart-count" class="cart-count"></span></h2>
+      <div id="cart-body">
+        <p style="text-align:center;color:var(--texto-s);padding:30px">Escanea o busca un producto para comenzar</p>
+      </div>
+      <div id="cart-totals" style="display:none;border-top:2px solid var(--gris-b);margin-top:12px;padding-top:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:.88rem">
+          <span style="color:var(--texto-s)">Subtotal:</span><strong id="cart-sub">L. 0.00</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:.88rem">
+          <span style="color:var(--texto-s)">Descuento:</span>
+          <div style="display:flex;align-items:center;gap:5px">
+            <span style="color:var(--texto-s)">L.</span>
+            <input id="pos-desc" type="number" min="0" step=".5" value="0" oninput="calcTotals()"
+              style="width:70px;border:1.5px solid var(--gris-b);border-radius:6px;padding:4px 8px;font-size:.88rem" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cobro">
+      <div class="total-box"><label>Total a Cobrar</label><div class="monto" id="pos-total">L. 0.00</div></div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>Método de Pago</label>
+        <select id="pos-metodo" onchange="calcTotals()">
+          <option>Efectivo</option><option>Tarjeta Débito</option><option>Tarjeta Crédito</option><option>Transferencia</option>
+        </select>
+      </div>
+      <div id="efectivo-wrap" class="form-group" style="margin-bottom:10px">
+        <label>Pago con</label>
+        <input id="pos-pago" type="number" min="0" step=".5" placeholder="L. 0.00" oninput="calcTotals()" />
+      </div>
+      <div class="cambio-box" id="cambio-box" style="display:none">
+        <label>Cambio</label><div class="monto" id="pos-cambio">L. 0.00</div>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Cliente</label>
+        <input id="pos-cliente" type="text" placeholder="Público General" />
+      </div>
+      <button class="btn btn-green btn-lg" style="width:100%;margin-top:14px;justify-content:center" onclick="cobrar()">✅ Cobrar</button>
+      <button class="btn btn-ghost" style="width:100%;margin-top:8px;justify-content:center" onclick="cancelarVenta()">🗑️ Cancelar Venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CONSULTA PRECIO ══════════════ -->
+<div id="tab-consulta" class="tab-panel">
+  <div style="max-width:600px;margin:0 auto;text-align:center">
+    <div class="scan-bar" style="margin-bottom:20px">
+      <span style="font-size:1.3rem">🔍</span>
+      <input id="cp-input" type="text" placeholder="Escanea código de barras o escribe el nombre…"
+        autocomplete="off" onkeydown="cpKey(event)"
+        style="flex:1;border:2px solid var(--verde-c);border-radius:8px;padding:12px 16px;font-size:1.1rem;text-align:center" />
+      <button class="btn btn-blue" onclick="camOpen('consulta')" title="Escanear con cámara">📷</button>
+    </div>
+    <div id="cp-result" style="display:none">
+      <div style="background:var(--blanco);border-radius:16px;box-shadow:0 6px 30px rgba(0,0,0,.12);padding:40px 30px;margin-bottom:20px">
+        <div id="cp-nombre" style="font-size:1.8rem;font-weight:900;color:var(--texto);margin-bottom:6px"></div>
+        <div id="cp-desc" style="font-size:.92rem;color:var(--texto-s);margin-bottom:20px"></div>
+        <div id="cp-precio" style="font-size:4rem;font-weight:900;color:var(--verde);line-height:1.1"></div>
+        <div style="margin-top:16px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap">
+          <div class="cp-chip"><div class="cp-chip-l">Código</div><div id="cp-codigo" class="cp-chip-v"></div></div>
+          <div class="cp-chip"><div class="cp-chip-l">Barras</div><div id="cp-barras" class="cp-chip-v"></div></div>
+          <div class="cp-chip"><div class="cp-chip-l">Categoría</div><div id="cp-cat" class="cp-chip-v"></div></div>
+          <div class="cp-chip"><div class="cp-chip-l">Stock</div><div id="cp-stock" class="cp-chip-v"></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="cp-empty" style="padding:60px 20px;color:var(--texto-s)">
+      <div style="font-size:4rem;margin-bottom:10px">🔎</div>
+      <div style="font-size:1.1rem;font-weight:600">Escanea o digita un código</div>
+      <div style="font-size:.88rem;margin-top:4px">El precio aparecerá en pantalla grande</div>
+    </div>
+    <div id="cp-not-found" style="display:none;padding:40px 20px;color:var(--rojo)">
+      <div style="font-size:3rem;margin-bottom:8px">❌</div>
+      <div style="font-size:1.2rem;font-weight:700">Producto no encontrado</div>
+      <div id="cp-nf-code" style="font-size:.9rem;color:var(--texto-s);margin-top:4px;font-family:monospace"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CATÁLOGO ══════════════ -->
+<div id="tab-catalogo" class="tab-panel">
+  <div class="card">
+    <h2>➕ <span id="cat-form-titulo">Agregar Producto</span></h2>
+    <div class="form-grid">
+      <input type="hidden" id="c-id" />
+      <div class="form-group readonly">
+        <label>Código Interno (auto)</label>
+        <input id="c-codigo" type="text" readonly placeholder="auto" />
+      </div>
+      <div class="form-group">
+        <label>Código de Barras</label>
+        <div class="bc-row">
+          <input id="c-barras" type="text" placeholder="Escanea o escribe" onkeydown="catBcKey(event)" />
+          <button class="btn btn-blue" onclick="camOpen('catalogo')" title="Escanear">📷</button>
+        </div>
+      </div>
+      <div class="form-group"><label>Nombre *</label><input id="c-nombre" type="text" placeholder="Nombre del producto" /></div>
+      <div class="form-group"><label>Categoría *</label><input id="c-cat" type="text" list="cats-dl" placeholder="Bebidas, Lácteos…" /><datalist id="cats-dl"></datalist></div>
+      <div class="form-group"><label>Precio Venta *</label><input id="c-pventa" type="number" min="0" step=".01" placeholder="0.00" /></div>
+      <div class="form-group"><label>Precio Costo</label><input id="c-pcosto" type="number" min="0" step=".01" placeholder="0.00" /></div>
+      <div class="form-group"><label>Stock Inicial</label><input id="c-stock" type="number" min="0" placeholder="0" /></div>
+      <div class="form-group"><label>Stock Mínimo</label><input id="c-smin" type="number" min="0" placeholder="5" /></div>
+      <div class="form-group">
+        <label>Unidad</label>
+        <select id="c-unidad">
+          <option>Pieza</option><option>Kg</option><option>Gramo</option><option>Litro</option>
+          <option>Mililitro</option><option>Caja</option><option>Paquete</option><option>Metro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Descripción / Marca</label><input id="c-desc" type="text" placeholder="Opcional" /></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-green" onclick="saveProd()">💾 Guardar Producto</button>
+      <button class="btn btn-ghost" onclick="resetCatForm()">✕ Cancelar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📄 Carga Masiva desde CSV</h2>
+    <p style="font-size:.85rem;color:var(--texto-s);margin-bottom:12px">Descarga la plantilla, llénala con tus productos y súbela aquí. Los productos nuevos se agregarán al catálogo con código interno automático.</p>
+    <div class="actions" style="margin-top:0">
+      <button class="btn btn-blue" onclick="descargarPlantilla()">📥 Descargar Plantilla CSV</button>
+      <label class="btn btn-green" style="cursor:pointer">📤 Cargar CSV
+        <input type="file" id="csv-file" accept=".csv" onchange="importarCSV(event)" style="display:none" />
+      </label>
+    </div>
+    <div id="csv-preview" style="display:none;margin-top:14px">
+      <div class="table-wrap" style="max-height:260px;overflow-y:auto">
+        <table><thead id="csv-prev-head"></thead><tbody id="csv-prev-body"></tbody></table>
+      </div>
+      <div class="actions">
+        <button class="btn btn-green" onclick="confirmarImport()">✅ Confirmar Importación (<span id="csv-count">0</span> productos)</button>
+        <button class="btn btn-ghost" onclick="cancelarImport()">✕ Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📦 Catálogo de Productos (<span id="cat-total-n">0</span>)</h2>
+    <div class="search-bar">
+      <input id="cat-q" type="text" placeholder="🔍 Nombre, código o barras…" oninput="renderCat()" />
+      <select id="cat-f-cat" onchange="renderCat()" style="border:1.5px solid var(--gris-b);border-radius:7px;padding:8px 12px;font-size:.86rem;background:var(--gris)">
+        <option value="">Todas las categorías</option>
+      </select>
+      <button class="btn btn-ghost" onclick="csvInventario()">⬇️ CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Cód. Int.</th><th>Código Barras</th><th>Producto</th><th>Categoría</th>
+          <th>P. Venta</th><th>P. Costo</th><th>Stock</th><th>Unidad</th><th>Estado</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="cat-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ COMPRAS ══════════════ -->
+<div id="tab-compras" class="tab-panel">
+  <div class="card">
+    <h2>📥 Nueva Orden de Compra</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>Proveedor</label><input id="cmp-prov" type="text" placeholder="Nombre del proveedor" /></div>
+      <div class="form-group"><label>Factura / Remisión</label><input id="cmp-fact" type="text" placeholder="Núm. de factura" /></div>
+      <div class="form-group">
+        <label>Método de Pago</label>
+        <select id="cmp-metodo"><option>Efectivo</option><option>Transferencia</option><option>Crédito Proveedor</option><option>Cheque</option></select>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--gris-b)">
+      <h3 style="font-size:.88rem;color:var(--texto-s);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">Agregar producto a la compra</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="flex:2;min-width:160px">
+          <label>Producto</label>
+          <div class="ac-wrap">
+            <input id="cmp-prod-q" type="text" placeholder="Nombre, código o barras…" autocomplete="off" oninput="cmpSearch()" />
+            <div class="ac-list" id="cmp-ac"></div>
+          </div>
+        </div>
+        <input type="hidden" id="cmp-prod-id" />
+        <div class="form-group" style="min-width:88px"><label>Cantidad</label><input id="cmp-cant" type="number" min="1" placeholder="1" /></div>
+        <div class="form-group" style="min-width:100px"><label>Costo Unit. *</label><input id="cmp-costo" type="number" min="0" step=".01" placeholder="0.00" /></div>
+        <button class="btn btn-blue" onclick="addCmpItem()" style="align-self:flex-end;margin-bottom:1px">➕ Agregar</button>
+        <button class="btn btn-blue" onclick="camOpen('compras')" style="align-self:flex-end;margin-bottom:1px" title="Escanear con cámara">📷</button>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cód.</th><th>Producto</th><th>Cantidad</th><th>Costo Unit.</th><th>Subtotal</th><th></th></tr></thead>
+          <tbody id="cmp-items-tbl"></tbody>
+          <tfoot><tr style="background:var(--gris)">
+            <td colspan="4" style="font-weight:700;text-align:right;padding:10px 13px">TOTAL COMPRA:</td>
+            <td colspan="2" style="font-weight:900;font-size:1.05rem;color:var(--amarillo);padding:10px 13px" id="cmp-total">L. 0.00</td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-yellow" onclick="saveCompra()">✅ Registrar Compra</button>
+      <button class="btn btn-ghost" onclick="resetCompraForm()">✕ Cancelar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📑 Historial de Compras</h2>
+    <div class="search-bar">
+      <input id="cmp-q" type="text" placeholder="🔍 Proveedor o folio…" oninput="renderCompras()" />
+      <input id="cmp-fecha" type="date" onchange="renderCompras()"
+        style="border:1.5px solid var(--gris-b);border-radius:7px;padding:8px 12px;font-size:.86rem;background:var(--gris)" />
+    </div>
+    <div id="cmp-hist"></div>
+  </div>
+</div>
+
+<!-- ══════════════ HISTORIAL ══════════════ -->
+<div id="tab-historial" class="tab-panel">
+  <div class="kpi-grid">
+    <div class="kpi verde"><label>Total Ventas (General)</label><div class="valor" id="hk-v">L. 0.00</div><div class="sub" id="hk-vn">0 ventas</div></div>
+    <div class="kpi rojo"><label>Total Compras (General)</label><div class="valor" id="hk-c">L. 0.00</div><div class="sub" id="hk-cn">0 compras</div></div>
+    <div class="kpi amarillo"><label>Utilidad Neta</label><div class="valor" id="hk-u">L. 0.00</div><div class="sub" id="hk-u-pct">0.00% margen</div></div>
+  </div>
+  <div class="card">
+    <h2>📋 Todas las Ventas</h2>
+    <div class="search-bar">
+      <input id="h-q" type="text" placeholder="🔍 Folio, cliente o producto…" oninput="renderHist()" />
+      <input id="h-fecha" type="date" onchange="renderHist()"
+        style="border:1.5px solid var(--gris-b);border-radius:7px;padding:8px 12px;font-size:.86rem;background:var(--gris)" />
+      <button class="btn btn-ghost" onclick="csvVentas()">⬇️ CSV</button>
+    </div>
+    <div id="hist-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════ TENDENCIAS ══════════════ -->
+<div id="tab-tendencias" class="tab-panel">
+  <div class="card" style="padding:14px 18px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="trendMesNav(-1)">◀</button>
+      <h2 style="margin:0;flex:1;text-align:center" id="trend-mes-titulo">Mes</h2>
+      <button class="btn btn-ghost" onclick="trendMesNav(+1)">▶</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>📈 Ventas por Día del Mes</h2>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <div id="trend-chart" style="display:flex;align-items:flex-end;gap:3px;min-height:220px;padding:10px 0;min-width:fit-content"></div>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--gris-b)">
+      <div><span style="font-size:.76rem;color:var(--texto-s)">Total del Mes:</span> <strong id="trend-total-mes" style="color:var(--verde)">L. 0.00</strong></div>
+      <div><span style="font-size:.76rem;color:var(--texto-s)">Promedio/día:</span> <strong id="trend-prom-dia">L. 0.00</strong></div>
+      <div><span style="font-size:.76rem;color:var(--texto-s)">Días con venta:</span> <strong id="trend-dias-venta">0</strong></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🏆 Mejor Día de Venta</h2>
+    <div id="trend-mejor-dia" style="padding:12px;background:var(--gris);border-radius:8px;margin-bottom:14px">
+      <p style="color:var(--texto-s);text-align:center">Sin datos</p>
+    </div>
+    <h3 style="font-size:.88rem;color:var(--texto-s);margin-bottom:10px">Detalle por día</h3>
+    <div class="table-wrap" style="max-height:360px;overflow-y:auto">
+      <table>
+        <thead><tr><th>Día</th><th>Fecha</th><th>Ventas</th><th>Transacciones</th><th>Utilidad</th><th>Margen</th></tr></thead>
+        <tbody id="trend-tabla-dias"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ USUARIOS ══════════════ -->
+<div id="tab-usuarios" class="tab-panel">
+  <div class="card">
+    <h2>➕ <span id="usr-form-titulo">Nuevo Usuario</span></h2>
+    <div class="form-grid">
+      <input type="hidden" id="u-id" />
+      <div class="form-group"><label>Nombre completo *</label><input id="u-name" type="text" placeholder="Nombre del empleado" /></div>
+      <div class="form-group"><label>Usuario (login) *</label><input id="u-username" type="text" placeholder="ej. cajera1" /></div>
+      <div class="form-group">
+        <label>Rol *</label>
+        <select id="u-role">
+          <option value="ventas">Cajero / Ventas</option>
+          <option value="compras">Compras / Inventario</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div class="form-group"><label id="u-pass-label">Contraseña *</label><input id="u-password" type="text" placeholder="Contraseña" /></div>
+      <div class="form-group" id="u-active-wrap" style="display:none">
+        <label>Estado</label>
+        <select id="u-active"><option value="1">Activo</option><option value="0">Inactivo</option></select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-green" onclick="saveUser()">💾 Guardar Usuario</button>
+      <button class="btn btn-ghost" onclick="resetUserForm()">✕ Cancelar</button>
+    </div>
+    <p style="font-size:.8rem;color:var(--texto-s);margin-top:10px">
+      <strong>Ventas:</strong> Dashboard, POS, consulta e historial. &nbsp;·&nbsp;
+      <strong>Compras:</strong> Dashboard, catálogo, compras, tendencias. &nbsp;·&nbsp;
+      <strong>Admin:</strong> acceso total y gestión de usuarios.
+    </p>
+  </div>
+  <div class="card">
+    <h2>👥 Usuarios del Sistema (<span id="usr-total-n">0</span>)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th>Creado</th><th>Acciones</th></tr></thead>
+        <tbody id="usr-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ CONFIG ══════════════ -->
+<div id="tab-config" class="tab-panel">
+  <div class="card">
+    <h2>⚙️ Información de la Tienda</h2>
+    <div class="form-grid">
+      <div class="form-group"><label>Nombre de la Tienda</label><input id="cfg-nombre" type="text" placeholder="Mi Mercadito" /></div>
+      <div class="form-group"><label>Dirección</label><input id="cfg-dir" type="text" placeholder="Calle, Colonia, Ciudad" /></div>
+      <div class="form-group"><label>Teléfono</label><input id="cfg-tel" type="text" placeholder="55 1234 5678" /></div>
+      <div class="form-group"><label>RFC (opcional)</label><input id="cfg-rfc" type="text" placeholder="RFC o info fiscal" /></div>
+      <div class="form-group full"><label>Mensaje en el Ticket</label><input id="cfg-msg" type="text" placeholder="¡Gracias por su compra!" /></div>
+    </div>
+    <div class="actions"><button class="btn btn-green" onclick="saveConfig()">💾 Guardar</button></div>
+  </div>
+  <div class="card">
+    <h2>💾 Respaldo de Datos</h2>
+    <p style="font-size:.85rem;color:var(--texto-s);margin-bottom:14px">Descarga una copia de seguridad con <strong>todos los datos</strong> (catálogo, ventas, compras y configuración) desde la base de datos del servidor.</p>
+    <div class="actions" style="margin-top:0;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="exportarRespaldo()">📤 Descargar Respaldo (.json)</button>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ══ Camera overlay ══ -->
+<div id="cam-overlay">
+  <div id="cam-reader"></div>
+  <p>📷 Apunta la cámara al código de barras</p>
+  <button class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.35)" onclick="camClose()">✕ Cancelar</button>
+</div>
+
+<!-- ══ Modals ══ -->
+<div class="modal-bg" id="m-stock-warn">
+  <div class="modal">
+    <h3 style="color:var(--amarillo)">⚠️ Stock Insuficiente</h3>
+    <p style="font-size:.88rem;color:var(--texto-s);margin-bottom:8px">
+      <strong id="sw-nombre"></strong> tiene <strong id="sw-stock"></strong> en stock y estás vendiendo <strong id="sw-cant"></strong>.
+    </p>
+    <p style="font-size:.84rem;background:#FFF8E1;padding:10px;border-radius:7px;border:1px solid #FFE082">
+      💡 La existencia quedará negativa hasta que ingreses la compra pendiente en el módulo de Compras.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-stock-warn'); setTimeout(()=>byId('pos-input').focus(),50);">✕ Cancelar</button>
+      <button class="btn btn-yellow" onclick="stockWarnContinuar()">✅ Continuar con la Venta</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-del">
+  <div class="modal">
+    <h3>⚠️ Confirmar eliminación</h3>
+    <p style="color:var(--texto-s);font-size:.88rem">Esta acción no se puede deshacer.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-del')">Cancelar</button>
+      <button class="btn btn-red" onclick="runDel()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-pass">
+  <div class="modal">
+    <h3>🔑 Cambiar contraseña</h3>
+    <div class="form-group" style="margin-bottom:10px"><label>Contraseña actual</label><input id="pass-actual" type="password" /></div>
+    <div class="form-group"><label>Nueva contraseña</label><input id="pass-nueva" type="password" /></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-pass')">Cancelar</button>
+      <button class="btn btn-green" onclick="cambiarPass()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="m-ticket">
+  <div class="modal" style="max-width:360px">
+    <h3>🧾 Venta Registrada</h3>
+    <div id="ticket-view"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-ticket')">Cerrar</button>
+      <button class="btn btn-green" onclick="printTicket()">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<div id="ticket-print"></div>
+<div id="toast"></div>
+
+</div><!-- /#app -->
+
+<script src="app.js"></script>
+</body>
+</html>
