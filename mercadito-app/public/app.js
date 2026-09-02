@@ -474,7 +474,25 @@ function cpReset() {
   byId('cp-result').style.display = 'none';
   byId('cp-not-found').style.display = 'none';
   byId('cp-empty').style.display = '';
+  closeAC('cp-ac');
   setVal('cp-input','');
+}
+
+function cpSearch() {
+  const q = val('cp-input').toLowerCase().trim();
+  const ac = byId('cp-ac');
+  if (!q) { closeAC('cp-ac'); return; }
+  const res = inv.filter(p => p.nombre.toLowerCase().includes(q) || (p.barras||'').includes(q) || (p.codigo||'').includes(q)).slice(0, 12);
+  if (!res.length) { closeAC('cp-ac'); return; }
+  ac.innerHTML = res.map(p => `<div class="ac-item" onclick="cpPick(${p.id})">
+      <strong>${esc(p.nombre)}</strong>
+      <span>${esc(p.codigo)} · ${mon(p.pventa)} · Stock: ${p.stock}</span></div>`).join('');
+  ac.style.display = 'block';
+}
+function cpPick(id) {
+  const p = inv.find(x => x.id === id);
+  closeAC('cp-ac');
+  if (p) cpShowProduct(p.codigo);
 }
 function cpShowProduct(code) {
   const p = inv.find(x => x.barras === code || x.codigo === code || x.nombre.toLowerCase() === code.toLowerCase());
@@ -501,6 +519,7 @@ function cpShowProduct(code) {
 function cpKey(e) {
   if (e.key !== 'Enter') return;
   e.preventDefault();
+  closeAC('cp-ac');
   const q = val('cp-input').trim();
   if (!q) return;
   const exact = inv.find(x => x.barras === q || x.codigo === q);

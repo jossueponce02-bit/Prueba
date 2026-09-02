@@ -179,9 +179,12 @@
   <div style="max-width:600px;margin:0 auto;text-align:center">
     <div class="scan-bar" style="margin-bottom:20px">
       <span style="font-size:1.3rem">🔍</span>
-      <input id="cp-input" type="text" placeholder="Escanea código de barras o escribe el nombre…"
-        autocomplete="off" onkeydown="cpKey(event)"
-        style="flex:1;border:2px solid var(--verde-c);border-radius:8px;padding:12px 16px;font-size:1.1rem;text-align:center" />
+      <div class="ac-wrap" style="flex:1">
+        <input id="cp-input" type="text" placeholder="Escanea código de barras o escribe el nombre…"
+          autocomplete="off" oninput="cpSearch()" onkeydown="cpKey(event)"
+          style="width:100%;border:2px solid var(--verde-c);border-radius:8px;padding:12px 16px;font-size:1.1rem;text-align:center" />
+        <div class="ac-list" id="cp-ac" style="text-align:left"></div>
+      </div>
       <button class="btn btn-blue" onclick="camOpen('consulta')" title="Escanear con cámara">📷</button>
     </div>
     <div id="cp-result" style="display:none">
